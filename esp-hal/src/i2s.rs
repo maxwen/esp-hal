@@ -761,6 +761,13 @@ where
 
 pub trait RegisterAccess: RegisterAccessPrivate {}
 
+pub trait UpdateConfig {
+    fn update_config(standard: Standard,
+                     data_format: DataFormat,
+                     sample_rate: impl Into<fugit::HertzU32>,
+                     clocks: &Clocks);
+}
+
 mod private {
     use core::marker::PhantomData;
 
@@ -775,6 +782,7 @@ mod private {
         RegisterAccess,
         Standard,
         I2S_LL_MCLK_DIVIDER_MAX,
+        UpdateConfig
     };
     #[cfg(not(any(esp32, esp32s3)))]
     use crate::peripherals::i2s0::RegisterBlock;
@@ -1988,6 +1996,41 @@ mod private {
         bclk_divider: u32,
         denominator: u32,
         numerator: u32,
+    }
+
+    impl UpdateConfig for crate::peripherals::I2S0 {
+        fn update_config(standard: Standard,
+                             data_format: DataFormat,
+                             sample_rate: impl Into<fugit::HertzU32>,
+                             clocks: &Clocks) {
+            crate::peripherals::I2S0::set_clock(calculate_clock(
+                sample_rate,
+                2,
+                data_format.channel_bits(),
+                clocks,
+            ));
+            crate::peripherals::I2S0::configure(&standard, &data_format);
+            crate::peripherals::I2S0::set_master();
+            crate::peripherals::I2S0::update();
+        }
+    }
+
+    #[cfg(any(esp32s3, esp32))]
+    impl UpdateConfig for crate::peripherals::I2S1 {
+        fn update_config(standard: Standard,
+                         data_format: DataFormat,
+                         sample_rate: impl Into<fugit::HertzU32>,
+                         clocks: &Clocks) {
+            crate::peripherals::I2S1::set_clock(calculate_clock(
+                sample_rate,
+                2,
+                data_format.channel_bits(),
+                clocks,
+            ));
+            crate::peripherals::I2S1::configure(&standard, &data_format);
+            crate::peripherals::I2S1::set_master();
+            crate::peripherals::I2S1::update();
+        }
     }
 
     pub fn calculate_clock(
