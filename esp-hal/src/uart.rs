@@ -580,12 +580,6 @@ where
             }
         }
 
-        // Setting err_wr_mask stops uart from storing data when data is wrong according
-        // to reference manual
-        T::register_block()
-            .conf0()
-            .modify(|_, w| w.err_wr_mask().set_bit());
-
         // Reset Tx/Rx FIFOs
         serial.rxfifo_reset();
         serial.txfifo_reset();
@@ -1956,10 +1950,7 @@ mod asynch {
 
             loop {
                 let mut events = RxEvent::RxFifoFull
-                    | RxEvent::RxFifoOvf
-                    | RxEvent::RxFrameError
-                    | RxEvent::RxGlitchDetected
-                    | RxEvent::RxParityError;
+                    | RxEvent::RxFifoOvf;
 
                 if self.at_cmd_config.is_some() {
                     events |= RxEvent::RxCmdCharDetected;
